@@ -1,0 +1,32 @@
+div.container
+	h3 Login
+	form.well.form-horizontal
+		p#login-error(style="color: #B94A48;")
+		
+		p
+			input#login-username.span2(type="text", name="username", placeholder="Username")
+		p
+			input#login-password.span2(type="password", name="password", placeholder="Password")
+		p
+			a#login.btn="Login"
+
+	h4 Or, create an account
+	form.well.form-horizontal
+		p#create-error(style="color: #B94A48;")
+
+		p
+			input#create-username.span2(type="text", name="username", placeholder="Username")
+			span.help-inline(style="color: #B94A48;").
+				*
+		p
+			input#create-email.span2(type="text", name="email", placeholder="Email")
+			span.help-inline(style="color: #B94A48;").
+				*
+		p
+			input#create-phone.span2(type="text", name="phone", placeholder="Phone number")
+		p
+			input#create-password.span2(type="password", name="password", placeholder="Password")
+			span.help-inline(style="color: #B94A48;").
+				*
+		p
+			a#create.btn="Create"

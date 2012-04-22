@@ -1,9 +1,20 @@
-var UNAUTHORIZED = 401;
+var STATUS = {
+	UNAUTHORIZED : 401,
+	OK : 200
+};
 
 
 var express = require('express');
 var app = express.createServer();
 app.use(express.bodyParser());
+app.use(express.cookieParser());
+app.use(express.session({ secret: "keyboard cat" }));
+
+var jade = require('jade');
+app.set('view engine', 'jade');
+app.set('view options', {
+  pretty: true
+});
 
 var mongoose = require('mongoose');
 mongoose.connect('mongodb://127.0.0.1/procrastinaid');
@@ -42,10 +53,10 @@ var sendText = function(user, task){
 };
 
 var User = mongoose.model('User', new Schema({
-	username: String,
-	email: String,
+	username: {type: String, required: true},
+	email: {type: String, required: true},
 	phone: String,
-	password: String
+	password: {type: String, required: true}
 }));
 
 var Task = mongoose.model('Task', new Schema({
@@ -61,21 +72,30 @@ var Task = mongoose.model('Task', new Schema({
 	}
 }));
 
-Task.find({}, function(err, data){
-	for (var i = 0; i < data.length; i++)
-		data[i].remove();
-});
+var loadUser = function(req, res, next){
+	if (req.session.username === undefined){
+		res.redirect("/");
+	} else {
+		next();
+	}
+};
 
 app.get('/', function(req, res){
-	res.sendfile(__dirname + "/index.html");
+	if (req.session.username === undefined){
+		res.render("login");
+	} else {
+		res.render("index", {
+			username: req.session.username
+		});
+	}
 });
 
 app.get(/.*\.js|css|png/, function(req, res){
 	res.sendfile(__dirname + req.url);
 });
 
-app.get('/user/:username/task', function(req, res){
-	User.findOne({username: req.params.username}, function(error, data){
+app.get('/task', loadUser, function(req, res){
+	User.findOne({username: req.session.username}, function(error, data){
 		if (data){
 			Task.find({user: data["_id"]}, function(error, data){
 				res.json(data);
@@ -84,81 +104,108 @@ app.get('/user/:username/task', function(req, res){
 	});
 });
 
-app.post('/user/:username/task', function(req, res){	
-	User.findOne({username: req.params.username}, function(error, data){
+app.post('/task', loadUser, function(req, res){	
+	User.findOne({username: req.session.username}, function(error, data){
 		if (data){
-			var password = req.param('password');
-			if (password === data.password){
+			var config = req.param('config') || {
+				email: true,
+				facebook: false,
+				phone: false
+			};
 
-				var config = req.param('config') || {
-					email: true,
-					facebook: false,
-					phone: false
-				};
+			var taskConfig = {
+				user: data._id,
+				name: req.param('name'),
+				description: req.param('description'),
+				start: new Date(req.param('start')),
+				interval: req.param('interval'),
+				config : {
+					email: config.email,
+					facebook: config.facebook,
+					phone: config.phone
+				}
+			};
 
-				var taskConfig = {
-					user: data._id,
-					name: req.param('name'),
-					description: req.param('description'),
-					start: new Date(req.param('start')),
-					interval: req.param('interval'),
-					config : {
-						email: config.email,
-						facebook: config.facebook,
-						phone: config.phone
-					}
-				};
+			var job = scheduleCronJob(data, taskConfig);
 
-				var job = scheduleCronJob(data, taskConfig);
-
-				new Task(taskConfig).save(function(error, data){
-					if (data){
-						res.json(data);
-						jobs[data._id] = job;
-					} else if (error){
-						res.json(error);
-					}
-				});
-			} else {
-				res.send(UNAUTHORIZED);
-			}
+			new Task(taskConfig).save(function(error, data){
+				if (data){
+					res.json(data);
+					jobs[data._id] = job;
+				} else if (error){
+					res.json(error);
+				}
+			});
 		}
 	});
 });
 
-app.delete('/user/:username/task/:id', function(req, res){
+app.delete('task/:id', loadUser, function(req, res){
 	Task.findById(req.params.id, function(err, data){
 		if (data){
-			var password = req.param('password');
-			if (password === data.password)
-				data.remove();
-			else
-				res.send(UNAUTHORIZED);
+			data.remove();
 		}
 	});
 });
-		
 
-app.post('/user', function(req, res){
-	new User({
-		username: req.param('username'),
-		email: req.param('email'),
-		phone: req.param('phone'),
-		password: req.param('password')
-	}).save(function(error, data){
-		res.json(data);
+app.post('/login', function(req, res){
+	var username = req.param('username'),
+		password = req.param('password');
+	User.findOne({username : username}, function(err, user){
+		if (!user || user.password !== password){
+			res.json({
+				error: "Incorrect username/password."
+			});
+		} else {
+			req.session.regenerate(function(err){
+			});
+			req.session.username = username;
+			res.send(STATUS.OK);
+		}
 	});
 });
 
-app.delete('/user/:username', function(req, res){
+app.post("/logout", loadUser, function(req, res){
+	req.session.destroy();
+	res.send(STATUS.OK);
+});		
+
+app.post('/user', function(req, res){
+	User.findOne({username: req.param('username')}, function(err, user){
+		if (user){
+			res.json({
+				error: ["Username already exists."]
+			});
+		} else {
+			new User({
+				username: req.param('username'),
+				email: req.param('email'),
+				phone: req.param('phone'),
+				password: req.param('password')
+			}).save(function(error, data){
+				if (!error && data){
+					req.session.username = data.username;
+					res.send(STATUS.OK);
+				} else {
+					var errors = [];
+					for (var e in error.errors){
+						errors.push("Missing required field " + e);
+					}
+					res.json({
+						error: errors
+					});
+				}
+			});
+		}
+	})
+});
+
+app.delete('/user', loadUser, function(req, res){
 	User.findOne({
-		username: req.params.username
+		username: req.session.username
 	}, function(error, data){
 		if (data){
-			if (req.param('password') === data.password)
-				data.remove();
-			else
-				res.send(UNAUTHORIZED);
+			data.remove();
 		}
 	});
 });

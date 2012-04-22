@@ -1,0 +1,30 @@
+!!! 5
+html(lang="en")
+	head
+		script(src='http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js')
+		script(src='assets/js/handlebars-1.0.0.beta.6.js')
+		script(src='app.js')
+		link(rel="stylesheet", href="assets/css/bootstrap.css")
+		style
+			body {
+				margin-top: 50px;
+			}
+	body
+		div.navbar.navbar-fixed-top
+			div.navbar-inner
+				div.container
+					a.brand(href="#")="ProcrastinAid"
+					div.nav-collapse
+						ul.nav
+							li
+								a(href="#")="Home"
+							li
+								a(href="#about")="About"
+							li
+								a(href="#contact")="Contact"
+						if (typeof(username) != "undefined")
+							p.navbar-text.pull-right
+								|Logged in as 
+								#{username} 
+								a#logout="Logout"
+		!= body
