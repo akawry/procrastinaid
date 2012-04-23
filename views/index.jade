@@ -1,15 +1,82 @@
-
+script(src="assets/js/bootstrap-modal.js")
 script#task-template(type="text/x-handlebars-template")
-	|<div style="padding-bottom: 20px;">
+	|<div id="{{_id}}" class="task" style="padding-bottom: 20px;">
 	|	<h2>{{name}}</h2>
 	|	<h6>{{start}} - Reminding {{interval}}</h6>
-	|	<blockquote>
-	|		<P>{{description}}</P>
-	|	</blockquote>
-	|	<a class="btn btn-primary"><i class="icon-pencil icon-white"></i> Edit</a> <a class="btn btn-success"><i class="icon-ok icon-white"></i> Completed</a>
+	|	<small>
+	|		Bothering via 
+	|		{{#if config.email}}
+	|			e-mail{{#if config.phone}},{{/if}}
+	|		{{/if}}
+	|		{{#if config.phone}}
+	|			text message{{#if config.facebook}},{{/if}}
+	|		{{/if}}
+	|		{{#if config.facebook}}
+	|			facebook
+	|		{{/if}}
+	|	</small>
+	|	<p>
+	|		<blockquote>
+	|			<P>{{description}}</P>
+	|		</blockquote>
+	|	</p>
+	|	<a class="btn btn-primary edit-task" id="{{_id}}"><i class="icon-pencil icon-white"></i> Edit</a> <a class="btn btn-success complete-task" id="{{_id}}"><i class="icon-ok icon-white"></i> Complete</a>
 	|</div>
 
 script
-	$(function(){app.init();});
+	$(function(){
+		app.init();
+		$('#task-popup').modal('hide');
+	});
+
+div#task-popup.modal.hide
+	div.modal-header
+		a.close(data-dismiss="modal")="x"
+		h3 New task
+	div.modal-body
+		p#task-error(style="color: #B94A48;")
+
+		form.horizontal
+			input#task-name.span3(type="text", placeholder="Name")
+			span.help-inline.
+				Give a name to your task
+			
+			textarea#task-description.span3(placeholder="Description", style="resize: none;")
+			span.help-inline.
+				Describe your task
+
+			p
+				select#task-interval.span2
+					option.
+						hourly
+					option.
+						daily
+					option.
+						weekly
+					option.
+						monthly
+					option.
+						yearly
+				span.help-inline.
+					How often would you like to be bothered?
+			
+			p.help-block.
+				Bother me via:
+			label.checkbox
+				input#task-email(type="checkbox")
+				|Email
+			label.checkbox
+				input#task-phone(type="checkbox")
+				|Text message
+			label.checkbox
+				input#task-facebook(type="checkbox")
+				|Facebook
+			
+				
+	div.modal-footer
+		a#save-task.btn.btn-primary="Save"
+
 div.container
+	div.well
+		a#new-task.btn(data-toggle="modal", href="#task-popup")="New Task"
 	div#task-list

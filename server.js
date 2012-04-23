@@ -1,151 +1,142 @@
-var STATUS = {
-	UNAUTHORIZED : 401,
-	OK : 200
-};
+var express = require('express'),
+	jade = require('jade'),
+	Models = require('./models.js'),
+	User = Models.User,
+	Task = Models.Task,
+	Cron = require('./cron.js'),
+	scheduleCronJob = Cron.scheduleCronJob,
+	jobs = {};
 
-
-var express = require('express');
 var app = express.createServer();
 app.use(express.bodyParser());
 app.use(express.cookieParser());
 app.use(express.session({ secret: "keyboard cat" }));
-
-var jade = require('jade');
 app.set('view engine', 'jade');
 app.set('view options', {
   pretty: true
 });
 
-var mongoose = require('mongoose');
-mongoose.connect('mongodb://127.0.0.1/procrastinaid');
-var Schema = mongoose.Schema,
-	ObjectId = Schema.ObjectId;
-
-var CronJob = require('cron').CronJob,
-	jobs = {};
-
-var scheduleCronJob = function(user, task){
-	var cronStr = "*/5 * * * * *";
-
-	var job = new CronJob(cronStr, function(){
-		if (task.config.email)
-			sendEmail(user, task);
-		if (task.config.facebook)
-			sendFacebook(user, task);
-		if (task.config.phone)
-			sendText(user, task);
-	});
-	job.start();
-
-	return job;
-};
-
-var sendEmail = function(user, task){
-	console.log("sending an email");
-};
-
-var sendFacebook = function(user, task){
-	console.log("sending to facebook");
-};
-
-var sendText = function(user, task){
-	console.log("sending a text");
-};
-
-var User = mongoose.model('User', new Schema({
-	username: {type: String, required: true},
-	email: {type: String, required: true},
-	phone: String,
-	password: {type: String, required: true}
-}));
-
-var Task = mongoose.model('Task', new Schema({
-	user: ObjectId,
-	name: {type: String, required: true},
-	description: String,
-	start: Date,
-	interval: {type: String, match: /hourly|daily|weekly|monthly|yearly/},
-	config: {
-		phone: Boolean,
-		email: Boolean,
-		facebook: Boolean
-	}
-}));
-
 var loadUser = function(req, res, next){
 	if (req.session.username === undefined){
-		res.redirect("/");
+		res.redirect("/login");
 	} else {
 		next();
 	}
 };
 
-app.get('/', function(req, res){
-	if (req.session.username === undefined){
-		res.render("login");
-	} else {
-		res.render("index", {
-			username: req.session.username
-		});
-	}
+app.get('/', loadUser, function(req, res){
+	res.render("index", {
+		username: req.session.username
+	});
 });
 
 app.get(/.*\.js|css|png/, function(req, res){
 	res.sendfile(__dirname + req.url);
 });
 
-app.get('/task', loadUser, function(req, res){
+app.get('/task/:name?', loadUser, function(req, res){
 	User.findOne({username: req.session.username}, function(error, data){
 		if (data){
-			Task.find({user: data["_id"]}, function(error, data){
+			var params = {
+				user: data._id
+			};
+			if (req.params.name)
+				params.name = req.params.name;
+
+			Task.find(params, function(error, data){
 				res.json(data);
 			});
 		}
 	});
 });
 
+app.post('/task/:name', loadUser, function(req, res){
+	User.findOne({username: req.params.name}, function(error, user){
+		Task.findOne({name: req.params.name}, function(error, task){
+			var config = req.param('config');
+			var allFalse = true;
+			for (var prop in config){
+				config[prop] = config[prop] === "true" ? true : false;
+				if (config[prop] === true)
+					allFalse = false;
+			}
+
+			if (allFalse){
+				res.json({
+					error: ["Must select at least one way to bother you."]
+				});
+			} else {
+				task.description = req.param('description');
+				task.interval = req.param('interval');
+				task.config = config;
+				task.save(function(error){
+					console.log(error);
+					res.json("OK");
+				});
+			}
+		});
+	});
+});
+
 app.post('/task', loadUser, function(req, res){	
-	User.findOne({username: req.session.username}, function(error, data){
-		if (data){
-			var config = req.param('config') || {
-				email: true,
-				facebook: false,
-				phone: false
-			};
-
-			var taskConfig = {
-				user: data._id,
-				name: req.param('name'),
-				description: req.param('description'),
-				start: new Date(req.param('start')),
-				interval: req.param('interval'),
-				config : {
-					email: config.email,
-					facebook: config.facebook,
-					phone: config.phone
+	User.findOne({username: req.session.username}, function(error, user){
+		
+		Task.findOne({user: user._id, name: req.param('name')}, function(error, task){
+			if (task){
+				res.json({
+					error: ["A task with that name already exists."]
+				});
+			} else {
+				var config = req.param('config');
+				var allFalse = true;
+				for (var prop in config){
+					config[prop] = config[prop] === "true" ? true : false;
+					if (config[prop] === true)
+						allFalse = false;
 				}
-			};
 
-			var job = scheduleCronJob(data, taskConfig);
+				if (allFalse){
+					res.json({
+						error: ["Must select at least one way to bother you."]
+					});
+				} else {
 
-			new Task(taskConfig).save(function(error, data){
-				if (data){
-					res.json(data);
-					jobs[data._id] = job;
-				} else if (error){
-					res.json(error);
+					var taskConfig = {
+						user: user._id,
+						name: req.param('name'),
+						description: req.param('description'),
+						start: new Date(req.param('start')),
+						interval: req.param('interval'),
+						config : config
+					};
+
+					var job = scheduleCronJob(user, taskConfig);
+
+					new Task(taskConfig).save(function(error, task){
+						if (task){
+							res.json(task);
+							jobs[task._id] = job;
+						}
+					});
 				}
-			});
+			}
+		})
+	});
+});
+
+app.delete('/task/:id', loadUser, function(req, res){
+	Task.findById(req.params.id, function(err, task){
+		if (task){
+			task.remove();
+			res.json("OK");
+		} else {
+			res.json(404);
 		}
 	});
 });
 
-app.delete('task/:id', loadUser, function(req, res){
-	Task.findById(req.params.id, function(err, data){
-		if (data){
-			data.remove();
-		}
-	});
+app.get("/login", function(req, res){
+	res.render("login");
 });
 
 app.post('/login', function(req, res){
@@ -160,14 +151,14 @@ app.post('/login', function(req, res){
 			req.session.regenerate(function(err){
 			});
 			req.session.username = username;
-			res.send(STATUS.OK);
+			res.send("OK");
 		}
 	});
 });
 
 app.post("/logout", loadUser, function(req, res){
 	req.session.destroy();
-	res.send(STATUS.OK);
+	res.send("OK");
 });		
 
 app.post('/user', function(req, res){
@@ -185,7 +176,7 @@ app.post('/user', function(req, res){
 			}).save(function(error, data){
 				if (!error && data){
 					req.session.username = data.username;
-					res.send(STATUS.OK);
+					res.send("OK");
 				} else {
 					var errors = [];
 					for (var e in error.errors){
