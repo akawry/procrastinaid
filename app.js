@@ -9,6 +9,7 @@ $(function(){
 				method: 'GET',
 				success : function(res){
 					$(res).each(function(idx, task){
+						task.start = new Date(task.start).toString();
 						me.addTaskToView(task);
 					});
 				}
@@ -57,7 +58,6 @@ $(function(){
 						if (res.error){
 							//TODO: handle the error 
 						} else {
-							console.log("here");
 							app.fetchTasks();
 						}
 					}
@@ -95,7 +95,6 @@ $(function(){
 				password: $("#create-password").val()
 			},
 			success : function(res){
-				console.log(res);
 				if (res.error){
 					$("#create-error").html("");
 					$(res.error).each(function(i, error){
@@ -119,10 +118,8 @@ $(function(){
 	});
 	
 	$("a#save-task").click(function(){
-		console.log($("#task-popup").attr("edit"));
 		var edit = $("#task-popup").attr("edit") == "true",
 			url = "/task";
-		console.log(edit);
 		if (edit)
 			url += "/" + $("#task-popup").attr("task-name");
 
