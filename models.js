@@ -22,3 +22,5 @@ exports.Task = mongoose.model('Task', new Schema({
 		facebook: {type: Boolean, required: true}
 	}
 }));
+
+exports.ObjectId = ObjectId;

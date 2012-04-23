@@ -3,6 +3,7 @@ var express = require('express'),
 	Models = require('./models.js'),
 	User = Models.User,
 	Task = Models.Task,
+	ObjectId = Models.ObjectId,
 	Cron = require('./cron.js'),
 	scheduleCronJob = Cron.scheduleCronJob,
 	jobs = {};
@@ -198,6 +199,20 @@ app.delete('/user', loadUser, function(req, res){
 		if (data){
 			data.remove();
 		}
+	});
+});
+
+// start up all cron jobs 
+User.find({}, function(error, users){
+	users.map(function(user){
+		
+		Task.find({user: user._id}, function(error, tasks){
+			tasks.map(function(task){
+				var job = scheduleCronJob(user, task);
+				jobs[task._id] = job;
+			});
+		});
+
 	});
 });
 
