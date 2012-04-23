@@ -26,7 +26,7 @@ var loadUser = function(req, res, next){
 };
 
 app.get('/', loadUser, function(req, res){
-	res.render("index", {
+	res.render("./index", {
 		username: req.session.username
 	});
 });
@@ -137,7 +137,7 @@ app.delete('/task/:id', loadUser, function(req, res){
 });
 
 app.get("/login", function(req, res){
-	res.render("login");
+	res.render("./login");
 });
 
 app.post('/login', function(req, res){
