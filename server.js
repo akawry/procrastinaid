@@ -101,22 +101,17 @@ app.post('/task', loadUser, function(req, res){
 						error: ["Must select at least one way to bother you."]
 					});
 				} else {
-
-					var taskConfig = {
+					new Task({
 						user: user._id,
 						name: req.param('name'),
 						description: req.param('description'),
 						start: new Date(req.param('start')),
 						interval: req.param('interval'),
 						config : config
-					};
-
-					var job = scheduleCronJob(user, taskConfig);
-
-					new Task(taskConfig).save(function(error, task){
+					}).save(function(error, task){
 						if (task){
 							res.json(task);
-							jobs[task._id] = job;
+							jobs[task._id] = Cron.scheduleCronJob(user, task);
 						}
 					});
 				}
@@ -173,10 +168,15 @@ app.post('/user', function(req, res){
 				username: req.param('username'),
 				email: req.param('email'),
 				phone: req.param('phone'),
-				password: req.param('password')
+				password: req.param('password'),
+				emailVerified: false
 			}).save(function(error, data){
 				if (!error && data){
 					req.session.username = data.username;
+
+					if (data.email)
+						Cron.verifyForEmailing(data.email);
+
 					res.send("OK");
 				} else {
 					var errors = [];

@@ -1,4 +1,13 @@
 var CronJob = require('cron').CronJob;
+var AmazonSES = require('amazon-ses'),
+	ses = new AmazonSES('AKIAICGDJXAFYZ23LHTA', 'ncc1DG/hhgWbOxDdNrHWt6tfxJozrCGzM8YncVIa'),
+	jade = require('jade'),
+	fs = require('fs'),
+	emailBody = jade.compile(fs.readFileSync('views/email.jade').toString('utf8'));
+
+exports.verifyForEmailing = function(email){
+	ses.verifyEmailAddress(email);
+};
 
 exports.scheduleCronJob = function(user, task){
 	var start = task.start;
@@ -37,6 +46,24 @@ exports.scheduleCronJob = function(user, task){
 
 var sendEmail = function(user, task){
 	console.log("sending email to ", user, new Date());
+	var body = emailBody({
+		name: user.username,
+		task: task.name,
+		description: task.description,
+		reminders: task.reminders
+	});
+	ses.send({
+		from: "alex@procrastinaid.in",
+		to: [user.email],
+		replyTo: ["no-reply@procrastinaid.in"],
+		subject: "Action needed: " + task.name,
+		body : {
+			html: body
+		}
+	});
+
+	task.reminders++;
+	task.save();
 };
 
 var sendFacebook = function(user, task){
@@ -46,3 +73,4 @@ var sendFacebook = function(user, task){
 var sendText = function(user, task){
 	console.log("sending text to ", task, new Date());
 };
+

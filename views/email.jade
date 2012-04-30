@@ -1,0 +1,20 @@
+h3 Dear #{name},
+p
+	|You have still not finished your task 
+	u #{task}:
+	blockquote
+		#{description}
+
+	|We have reminded you 
+	#{reminders} 
+	|times already.
+
+p.
+	Sincerely, Procrastinaid
+
+p
+	small 
+		|You can unsubscribe to these emails by visiting 
+		a(href="http://procrastinaid.in")="Procrastinaid" 
+		| and marking this task as 
+		i complete
