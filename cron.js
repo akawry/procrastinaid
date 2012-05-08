@@ -3,7 +3,7 @@ var AmazonSES = require('amazon-ses'),
 	ses = new AmazonSES('AKIAICGDJXAFYZ23LHTA', 'ncc1DG/hhgWbOxDdNrHWt6tfxJozrCGzM8YncVIa'),
 	jade = require('jade'),
 	fs = require('fs'),
-	emailBody = jade.compile(fs.readFileSync('views/email.jade').toString('utf8'));
+	emailBody = jade.compile(fs.readFileSync(__dirname + '/views/email.jade').toString('utf8'));
 
 exports.verifyForEmailing = function(email){
 	ses.verifyEmailAddress(email);
@@ -73,4 +73,3 @@ var sendFacebook = function(user, task){
 var sendText = function(user, task){
 	console.log("sending text to ", task, new Date());
 };
-
