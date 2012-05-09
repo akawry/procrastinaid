@@ -45,25 +45,31 @@ exports.scheduleCronJob = function(user, task){
 };
 
 var sendEmail = function(user, task){
-	console.log("sending email to ", user, new Date());
-	var body = emailBody({
-		name: user.username,
-		task: task.name,
-		description: task.description,
-		reminders: task.reminders
-	});
-	ses.send({
-		from: "alex@procrastinaid.in",
-		to: [user.email],
-		replyTo: ["no-reply@procrastinaid.in"],
-		subject: "Action needed: " + task.name,
-		body : {
-			html: body
+	ses.getSendQuota(function(res){
+		if (Number(res.SentLast24Hours) < Number(res.Max24HourSend)){
+			console.log("sending email to ", user, new Date());
+			var body = emailBody({
+				name: user.username,
+				task: task.name,
+				description: task.description,
+				reminders: task.reminders
+			});
+			ses.send({
+				from: "alex@procrastinaid.in",
+				to: [user.email],
+				replyTo: ["no-reply@procrastinaid.in"],
+				subject: "Action needed: " + task.name,
+				body : {
+					html: body
+				}
+			});
+
+			task.reminders++;
+			task.save();		
+		} else {
+			console.log("Exceeded email quota!");
 		}
 	});
-
-	task.reminders++;
-	task.save();
 };
 
 var sendFacebook = function(user, task){
