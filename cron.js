@@ -4,6 +4,7 @@ var AmazonSES = require('amazon-ses'),
 	jade = require('jade'),
 	fs = require('fs'),
 	emailBody = jade.compile(fs.readFileSync(__dirname + '/views/email.jade').toString('utf8'));
+var APP_ID = "349863548395860";
 
 exports.verifyForEmailing = function(email){
 	ses.verifyEmailAddress(email);
@@ -71,6 +72,10 @@ var sendEmail = function(user, task){
 		}
 	});
 };
+
+/*ses.getSendQuota(function(res){
+	console.log(res);
+});*/
 
 var sendFacebook = function(user, task){
 	console.log("sending facebook to", task, new Date());

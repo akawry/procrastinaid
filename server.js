@@ -51,6 +51,14 @@ app.get('/task/:name?', loadUser, function(req, res){
 	});
 });
 
+app.get('/fb/task/:id', function(req, res){
+	Task.findById(req.params.id, function(error, data){
+		if (data){
+			res.render(__dirname + "/views/fbtask", data);
+		} 
+	});
+});
+
 app.post('/task/:name', loadUser, function(req, res){
 	User.findOne({username: req.params.name}, function(error, user){
 		Task.findOne({name: req.params.name}, function(error, task){
