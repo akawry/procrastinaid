@@ -54,6 +54,7 @@ app.get('/task/:name?', loadUser, function(req, res){
 app.get('/fb/task/:id', function(req, res){
 	Task.findById(req.params.id, function(error, data){
 		if (data){
+			data.layout = false;
 			res.render(__dirname + "/views/fbtask", data);
 		} 
 	});
