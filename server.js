@@ -80,15 +80,16 @@ app.get('/fb/auth', function(req, res){
 	}, function(err, fbres){
 		graph.setAccessToken(fbres.access_token);
 		graph.get("me", function(err, meres){
-			/*User.findOne({username: req.session.username}, function(error, data){
-				data.fb.authenticated = true;
+			User.findOne({username: req.session.username}, function(error, data){
+				//data.fb.authenticated = true;
 				data.fb.access_token = fbres.access_token;
-				data.fb.user_id = 
+				data.fb.username = meres.username;
+				data.fb.first_name = meres.first_name;
+				data.fb.last_name = meres.last_name;
 				data.save(function(error){
 					res.redirect("/");
 				});
-			});*/
-			res.json(meres);	
+			});
 		});
 	});
 });
