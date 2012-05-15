@@ -1,10 +1,10 @@
 var CronJob = require('cron').CronJob;
 var AmazonSES = require('amazon-ses'),
+	fbgraph = require('fbgraph'),
 	ses = new AmazonSES('AKIAICGDJXAFYZ23LHTA', 'ncc1DG/hhgWbOxDdNrHWt6tfxJozrCGzM8YncVIa'),
 	jade = require('jade'),
 	fs = require('fs'),
 	emailBody = jade.compile(fs.readFileSync(__dirname + '/views/email.jade').toString('utf8'));
-var APP_ID = "349863548395860";
 
 exports.verifyForEmailing = function(email){
 	ses.verifyEmailAddress(email);
