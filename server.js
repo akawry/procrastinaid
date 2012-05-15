@@ -72,31 +72,13 @@ app.get('/fb/task/:id', function(req, res){
 });
 
 app.get('/fb/auth', function(req, res){
-	var response = {};
 	graph.authorize({
 		client_id : fb.app_id,
 		client_secret: fb.app_secret,
 		redirect_uri: "http://ec2-50-17-70-185.compute-1.amazonaws.com/fb/auth",
 		code: req.query.code
 	}, function(err, fbres){
-		response['get access tokens'] = {
-			error: err,
-			fbres: fbres
-		};
-
-		graph.authorize({
-			client_id : fb.app_id,
-			client_secret: fb.app_secret,
-			grant_type: 'fb_exchange_token',
-			fb_exchange_token: fbres.access_token
-		}, function(err, fbres2){
-			response['exchange access tokens'] = {
-				error: err,
-				fbres: fbres2
-			};
-			res.json(response);
-			//res.redirect("/");
-		});
+		res.json(fbres);
 	});
 });
 
