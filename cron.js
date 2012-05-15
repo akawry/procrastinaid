@@ -32,6 +32,10 @@ exports.scheduleCronJob = function(user, task){
 	}
 
 	var job = new CronJob(cronStr, function(){
+		
+		task.reminders++;
+		task.save();
+			
 		if (task.config.email)
 			sendEmail(user, task);
 		if (task.config.facebook)
@@ -63,10 +67,7 @@ var sendEmail = function(user, task){
 				body : {
 					html: body
 				}
-			});
-
-			task.reminders++;
-			task.save();		
+			});		
 		} else {
 			console.log("Exceeded email quota!");
 		}
