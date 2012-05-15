@@ -14,4 +14,7 @@ html(lang="en")
 			}
 	body
 		div.container
-			h1 #{user.fb.first_name} still hasn't finished his task #{task.name}. We've reminded him #{task.reminders} times already!
+			h1 #{user.fb.first_name} still hasn't finished their task "#{task.name}". We've reminded him 
+				span(style="color: red;") 
+					#{task.reminders} 
+				| times already!

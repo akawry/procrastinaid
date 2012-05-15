@@ -62,7 +62,9 @@ app.get('/task/:name?', loadUser, function(req, res){
 	});
 });
 
-app.get('/fb/task/:id', loadUser, function(req, res){
+//TODO: SECURE THIS 
+
+app.get('/fb/task/:id', function(req, res){
 	Task.findById(req.params.id, function(error, task){
 		if (task){
 			User.findById(task.user, function(error, user){
