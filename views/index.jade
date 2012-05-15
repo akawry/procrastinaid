@@ -71,6 +71,9 @@ div#task-popup.modal.hide
 			label.checkbox
 				input#task-facebook(type="checkbox")
 				|Facebook
+			div#fb-auth(style="display: hidden;")
+				if !user.fb.authenticated
+					a(href="https://www.facebook.com/dialog/oauth?client_id=#{fb.app_id}&redirect_uri=http://ec2-50-17-70-185.compute-1.amazonaws.com/fb/auth/code&state=index")="Authenticate"
 			
 				
 	div.modal-footer

@@ -167,7 +167,15 @@ $(function(){
 		$("#task-email").removeAttr("checked");
 		$("#task-phone").removeAttr("checked");
 		$("#task-facebook").removeAttr("checked");	
-
+		$("#fb-auth").hide();
 		$("#task-name").removeAttr("disabled").removeClass("disabled");
+	});
+
+	$("#task-facebook").click(function(){
+		if ($(this).attr("checked")){
+			$("#fb-auth").show();
+		} else {
+			$("#fb-auth").hide();
+		}
 	});
 });

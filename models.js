@@ -7,7 +7,10 @@ exports.User = mongoose.model('User', new Schema({
 	username: {type: String, required: true},
 	email: {type: String, required: true},
 	phone: String,
-	password: {type: String, required: true}
+	password: {type: String, required: true},
+	fb: {
+		authenticated: {type: Boolean, default: false}
+	}
 }));
 
 exports.Task = mongoose.model('Task', new Schema({
