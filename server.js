@@ -78,7 +78,15 @@ app.get('/fb/auth', function(req, res){
 		redirect_uri: "http://ec2-50-17-70-185.compute-1.amazonaws.com/fb/auth",
 		code: req.query.code
 	}, function(err, fbres){
-		res.json(fbres);
+		
+		User.findOne({username: req.session.username}, function(error, data){
+			data.fb.authenticated = true;
+			data.fb.access_token = fbres.access_token;
+			data.save(function(error){
+				res.redirect("/");
+			});
+		});
+
 	});
 });
 

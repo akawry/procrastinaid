@@ -9,7 +9,8 @@ exports.User = mongoose.model('User', new Schema({
 	phone: String,
 	password: {type: String, required: true},
 	fb: {
-		authenticated: {type: Boolean, default: false}
+		authenticated: {type: Boolean, default: false},
+		access_token: {type: String}
 	}
 }));
 
