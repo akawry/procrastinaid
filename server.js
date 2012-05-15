@@ -1,7 +1,6 @@
 var express = require('express'),
 	jade = require('jade'),
 	Models = require('./models.js'),
-	https = require('https'),
 	User = Models.User,
 	Task = Models.Task,
 	ObjectId = Models.ObjectId,
@@ -11,7 +10,8 @@ var express = require('express'),
 	fb = {
 		app_id : "349863548395860",
 		app_secret: "1e081f4afe049d72ab5ab2a75cfd7a35"
-	};
+	},
+	graph = require('fbgraph');
 
 var app = express.createServer();
 app.use(express.bodyParser());
@@ -71,34 +71,33 @@ app.get('/fb/task/:id', function(req, res){
 	});
 });
 
-app.get('/fb/auth/code', function(req, res){
-	var httpsreq = https.request({
-		hostname: "graph.facebook.com",
-		path: "/oauth/access_token?" +
-				"client_id=" + fb.app_id + 
-   				"&redirect_uri=http://ec2-50-17-70-185.compute-1.amazonaws.com/" + 
-   				"&client_secret=" + fb.app_secret + 
-   				"&code=" + req.param('code')
-   	}, function(httpsres){
-   		httpsres.on('end', function(chunk) {
-   			res.json({
-   				data: chunk
-   			});
-   		});
+app.get('/fb/auth', function(req, res){
+	var response = {};
+	graph.authorize({
+		client_id : fb.app_id,
+		client_secret: fb.app_secret,
+		redirect_uri: "http://ec2-50-17-70-185.compute-1.amazonaws.com/fb/auth",
+		code: req.query.code
+	}, function(err, fbres){
+		response['get access tokens'] = {
+			error: err,
+			fbres: fbres
+		};
 
-   		httpsres.on('error', function(error){
-   			res.json({
-   				error: error
-   			});
-   		});
-
-   	});
-
-   	httpsreq.on('error', function(error){
-   		res.json({
-   			error: error
-   		});
-   	});
+		graph.authorize({
+			client_id : fb.app_id,
+			client_secret: fb.app_secret,
+			grant_type: 'fb_exchange_token',
+			fb_exchange_token: fbres.access_token
+		}, function(err, fbres2){
+			response['exchange access tokens'] = {
+				error: err,
+				fbres: fbres2
+			};
+			res.json(response);
+			//res.redirect("/");
+		});
+	});
 });
 
 app.post('/task/:name', loadUser, function(req, res){
