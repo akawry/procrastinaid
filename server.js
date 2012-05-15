@@ -62,11 +62,19 @@ app.get('/task/:name?', loadUser, function(req, res){
 	});
 });
 
-app.get('/fb/task/:id', function(req, res){
-	Task.findById(req.params.id, function(error, data){
-		if (data){
-			data.layout = false;
-			res.render(__dirname + "/views/fbtask", data);
+app.get('/fb/task/:id', loadUser, function(req, res){
+	Task.findById(req.params.id, function(error, task){
+		if (task){
+			User.findById(task.user, function(error, user){
+				if (user){
+					var params = {
+						layout: false,
+						user: user,
+						task: task
+					};
+					res.render(__dirname + '/views/fbtask', params);
+				}	
+			});
 		} 
 	});
 });
@@ -81,7 +89,7 @@ app.get('/fb/auth', function(req, res){
 		graph.setAccessToken(fbres.access_token);
 		graph.get("me", function(err, meres){
 			User.findOne({username: req.session.username}, function(error, data){
-				//data.fb.authenticated = true;
+				data.fb.authenticated = true;
 				data.fb.access_token = fbres.access_token;
 				data.fb.username = meres.username;
 				data.fb.first_name = meres.first_name;
@@ -256,12 +264,6 @@ User.find({}, function(error, users){
 			});
 		});
 
-	});
-});
-
-User.findOne({username: "kawrykow"}, function(err, user){
-	Task.findOne({user: user._id}, function(err, task){
-		Cron.sendFacebook(user, task);
 	});
 });
 

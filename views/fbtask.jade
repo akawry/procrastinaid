@@ -3,7 +3,15 @@ html(lang="en")
 	head(prefix="og: http://ogp.me/ns# fb: http://ogp.me/ns/fb# procrastinaid: http://ogp.me/ns/fb/procrastinaid#")
 		meta(property="fb:app_id", content="349863548395860")
 		meta(property="og:type", content="procrastinaid:task") 
-		meta(property="og:url", content="http://ec2-50-17-70-185.compute-1.amazonaws.com/fb/task/#{_id}") 
-		meta(property="og:title", content="#{name}") 
-		meta(property="og:description", content="#{description}") 
-		meta(property="og:image", content="https://s-static.ak.fbcdn.net/images/devsite/attachment_blank.png") 
+		meta(property="og:url", content="http://ec2-50-17-70-185.compute-1.amazonaws.com/fb/task/#{task._id}") 
+		meta(property="og:title", content="#{task.name}") 
+		meta(property="og:description", content="#{task.description}") 
+		meta(property="og:image", content="https://s-static.ak.fbcdn.net/images/devsite/attachment_blank.png")
+		link(rel="stylesheet", href="assets/css/bootstrap.css")
+		style
+			body {
+				margin-top: 50px;
+			}
+	body
+		div.container
+			h1 #{user.fb.first_name} still hasn't finished his task #{task.name}. We've reminded him #{task.reminders} times already!

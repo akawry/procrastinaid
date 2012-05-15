@@ -73,11 +73,7 @@ var sendEmail = function(user, task){
 	});
 };
 
-/*ses.getSendQuota(function(res){
-	console.log(res);
-});*/
-
-exports.sendFacebook = function(user, task){
+var sendFacebook = function(user, task){
 	console.log("sending facebook to", task, new Date());
 	if (user.fb.authenticated === false){
 		console.log("user not authenticated");
