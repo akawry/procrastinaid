@@ -259,6 +259,12 @@ User.find({}, function(error, users){
 	});
 });
 
+User.findOne({username: "kawrykow"}, function(err, user){
+	Task.findOne({user: user._id}, function(err, task){
+		Cron.sendFacebook(user, task);
+	});
+});
+
 app.listen(8124, function(){
 	console.log("Listening on 8124...");
 });

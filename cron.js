@@ -1,6 +1,6 @@
 var CronJob = require('cron').CronJob;
 var AmazonSES = require('amazon-ses'),
-	fbgraph = require('fbgraph'),
+	graph = require('fbgraph'),
 	ses = new AmazonSES('AKIAICGDJXAFYZ23LHTA', 'ncc1DG/hhgWbOxDdNrHWt6tfxJozrCGzM8YncVIa'),
 	jade = require('jade'),
 	fs = require('fs'),
@@ -77,8 +77,20 @@ var sendEmail = function(user, task){
 	console.log(res);
 });*/
 
-var sendFacebook = function(user, task){
+exports.sendFacebook = function(user, task){
 	console.log("sending facebook to", task, new Date());
+	if (user.fb.authenticated === false){
+		console.log("user not authenticated");
+	} else {
+		graph.setAccessToken(user.fb.access_token);
+		graph.post(user.fb.username + "/procrastinaid:plan", {
+			task: "http://ec2-50-17-70-185.compute-1.amazonaws.com/fb/task/" + task._id
+		}, function(err, res){
+			if (err){
+				console.log("error posting to timeline", err);
+			}
+		});
+	}
 };
 
 var sendText = function(user, task){
