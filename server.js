@@ -62,22 +62,28 @@ app.get('/task/:name?', loadUser, function(req, res){
 	});
 });
 
-//TODO: SECURE THIS 
-
 app.get('/fb/task/:id', function(req, res){
 	Task.findById(req.params.id, function(error, task){
 		if (task){
-			User.findById(task.user, function(error, user){
-				if (user){
-					var params = {
-						layout: false,
-						user: user,
-						task: task
-					};
-					res.render(__dirname + '/views/fbtask', params);
-				}	
-			});
-		} 
+			if (task.config.facebook === true){
+				User.findById(task.user, function(error, user){
+					if (user){
+						var params = {
+							layout: false,
+							user: user,
+							task: task
+						};
+						res.render(__dirname + '/views/fbtask', params);
+					}	
+				});
+				
+			// this task is not available for public viewing 
+			} else {
+				res.send("401"); 
+			}
+		} else {
+			res.send("404");
+		}
 	});
 });
 
