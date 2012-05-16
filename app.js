@@ -48,6 +48,8 @@ $(function(){
 					.attr("task-name", data.name);
 
 				$("#task-name").attr("disabled", "disabled").addClass("disabled");
+
+				$("#fb-auth").hide();
 			});
 
 			$("#" + data._id + " .complete-task").click(function(){
