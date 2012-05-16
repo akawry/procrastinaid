@@ -1,11 +1,23 @@
-var CronJob = require('cron').CronJob;
-var AmazonSES = require('amazon-ses'),
-	graph = require('fbgraph'),
-	ses = new AmazonSES('AKIAICGDJXAFYZ23LHTA', 'ncc1DG/hhgWbOxDdNrHWt6tfxJozrCGzM8YncVIa'),
+// load npm modules
+var amazonses = require('amazon-ses'),
+	graph = require('fbgraph');
+	cron = require('cron'),
 	jade = require('jade'),
-	fs = require('fs'),
+	fs = require('fs');
+
+// load user defined files
+var Config = require('./config');
+
+// init export objects 
+var CronJob = cron.CronJob,
+	ses = new amazonses(Config.amazon.id, Config.amazon.secret),
 	emailBody = jade.compile(fs.readFileSync(__dirname + '/views/email.jade').toString('utf8'));
 
+
+
+/**
+ * Set up exports 
+ */
 exports.verifyForEmailing = function(email){
 	ses.verifyEmailAddress(email);
 };
@@ -32,7 +44,7 @@ exports.scheduleCronJob = function(user, task){
 	}
 
 	var job = new CronJob(cronStr, function(){
-		
+
 		task.reminders++;
 		task.save();
 			
@@ -60,9 +72,9 @@ var sendEmail = function(user, task){
 				reminders: task.reminders
 			});
 			ses.send({
-				from: "alex@procrastinaid.in",
+				from: Config.email.from,
 				to: [user.email],
-				replyTo: ["no-reply@procrastinaid.in"],
+				replyTo: Config.email.replyTo,
 				subject: "Action needed: " + task.name,
 				body : {
 					html: body
@@ -81,7 +93,7 @@ var sendFacebook = function(user, task){
 	} else {
 		graph.setAccessToken(user.fb.access_token);
 		graph.post(user.fb.username + "/procrastinaid:plan", {
-			task: "http://ec2-50-17-70-185.compute-1.amazonaws.com/fb/task/" + task._id
+			task: Config.site_url + "/fb/task/" + task._id
 		}, function(err, res){
 			if (err){
 				console.log("error posting to timeline", err);

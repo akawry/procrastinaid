@@ -73,7 +73,7 @@ div#task-popup.modal.hide
 				|Facebook
 			div#fb-auth(style="display: hidden;")
 				if !user.fb.authenticated
-					a(href="https://www.facebook.com/dialog/oauth?client_id=#{fb.app_id}&redirect_uri=http://ec2-50-17-70-185.compute-1.amazonaws.com/fb/auth&state=code_generated&scope=offline_access")="Authenticate"
+					a(href="https://www.facebook.com/dialog/oauth?client_id=#{fb.app_id}&redirect_uri=#{site_url}/fb/auth&state=code_generated&scope=offline_access")="Authenticate"
 			
 				
 	div.modal-footer

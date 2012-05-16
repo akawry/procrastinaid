@@ -1,22 +1,25 @@
+// npm modules 
 var express = require('express'),
 	jade = require('jade'),
-	Models = require('./models.js'),
-	User = Models.User,
-	Task = Models.Task,
-	ObjectId = Models.ObjectId,
-	Cron = require('./cron.js'),
-	scheduleCronJob = Cron.scheduleCronJob,
-	jobs = {},
-	fb = {
-		app_id : "349863548395860",
-		app_secret: "1e081f4afe049d72ab5ab2a75cfd7a35"
-	},
 	graph = require('fbgraph');
 
+// user defined files
+var	Models = require('./models.js'),
+	Cron = require('./cron.js'),
+	Config = require('./config.js');
+
+// init user exports
+var	User = Models.User,
+	Task = Models.Task,
+	ObjectId = Models.ObjectId,
+	scheduleCronJob = Cron.scheduleCronJob,
+	jobs = {};
+	
+// set up app 
 var app = express.createServer();
 app.use(express.bodyParser());
 app.use(express.cookieParser());
-app.use(express.session({ secret: "keyboard cat" }));
+app.use(express.session({ secret: Config.express.session_secret }));
 app.set('view engine', 'jade');
 app.set('view options', {
   pretty: true
@@ -30,12 +33,32 @@ var loadUser = function(req, res, next){
 	}
 };
 
+// start up all cron jobs 
+User.find({}, function(error, users){
+	users.map(function(user){
+		
+		Task.find({user: user._id}, function(error, tasks){
+			tasks.map(function(task){
+				var job = scheduleCronJob(user, task);
+				jobs[task._id] = job;
+			});
+		});
+
+	});
+});
+
+
+
+/*
+ * SET UP ROUTES 
+ */
 app.get('/', loadUser, function(req, res){
 	User.findOne({username: req.session.username}, function(error, data){
 		if (data){
 			res.render(__dirname + "/views/index", {
 				username: req.session.username,
-				fb: fb,
+				fb: Config.fb,
+				site_url: Config.site_url,
 				user: data
 			});
 		}	
@@ -76,7 +99,7 @@ app.get('/fb/task/:id', function(req, res){
 						res.render(__dirname + '/views/fbtask', params);
 					}	
 				});
-				
+
 			// this task is not available for public viewing 
 			} else {
 				res.send("401"); 
@@ -89,9 +112,9 @@ app.get('/fb/task/:id', function(req, res){
 
 app.get('/fb/auth', function(req, res){
 	graph.authorize({
-		client_id : fb.app_id,
-		client_secret: fb.app_secret,
-		redirect_uri: "http://ec2-50-17-70-185.compute-1.amazonaws.com/fb/auth",
+		client_id : Config.fb.app_id,
+		client_secret: Config.fb.app_secret,
+		redirect_uri: Config.site_url + "/fb/auth",
 		code: req.query.code
 	}, function(err, fbres){
 		graph.setAccessToken(fbres.access_token);
@@ -261,20 +284,7 @@ app.delete('/user', loadUser, function(req, res){
 	});
 });
 
-// start up all cron jobs 
-User.find({}, function(error, users){
-	users.map(function(user){
-		
-		Task.find({user: user._id}, function(error, tasks){
-			tasks.map(function(task){
-				var job = scheduleCronJob(user, task);
-				jobs[task._id] = job;
-			});
-		});
-
-	});
-});
-
+// finally, start up
 app.listen(8124, function(){
 	console.log("Listening on 8124...");
 });
