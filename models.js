@@ -28,7 +28,11 @@ exports.Task = mongoose.model('Task', new Schema({
 		email: {type: Boolean, required: true},
 		facebook: {type: Boolean, required: true}
 	},
-	reminders : {type: Number, default: 0}
+	reminders : {type: Number, default: 0},
+	voucher: {
+		email: {type: String},
+		verified: {type: Boolean, default: false}
+	}
 }));
 
 exports.ObjectId = ObjectId;

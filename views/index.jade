@@ -74,6 +74,16 @@ div#task-popup.modal.hide
 			div#fb-auth(style="display: hidden;")
 				if !user.fb.authenticated
 					a(href="https://www.facebook.com/dialog/oauth?client_id=#{fb.app_id}&redirect_uri=#{site_url}/fb/auth&state=code_generated&scope=offline_access")="Authenticate"
+			p
+				&nbsp;
+			label.checkbox
+				input#task-enable-vouching(type="checkbox", checked="checked")
+				|Enable vouching
+			
+			div#vouching
+				input#task-voucher.span3(type="text", placeholder="Email")
+				span.help-inline.
+					Provide an email address (not your own) of someone who can vouch that the task has been completed.
 			
 				
 	div.modal-footer

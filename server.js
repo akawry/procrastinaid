@@ -29,7 +29,14 @@ var loadUser = function(req, res, next){
 	if (req.session.username === undefined){
 		res.redirect("/login");
 	} else {
-		next();
+		User.findOne({username: req.session.username}, function(error, user){
+			if (!user || error){
+				res.redirect("/login");
+			} else {
+				req.user = user;
+				next();
+			}
+		});
 	}
 };
 
@@ -53,16 +60,12 @@ User.find({}, function(error, users){
  * SET UP ROUTES 
  */
 app.get('/', loadUser, function(req, res){
-	User.findOne({username: req.session.username}, function(error, data){
-		if (data){
-			res.render(__dirname + "/views/index", {
-				username: req.session.username,
-				fb: Config.fb,
-				site_url: Config.site_url,
-				user: data
-			});
-		}	
-	})
+	res.render(__dirname + "/views/index", {
+		username: req.session.username,
+		fb: Config.fb,
+		site_url: Config.site_url,
+		user: req.user
+	});
 });
 
 app.get(/.*\.js|css|png/, function(req, res){
@@ -70,18 +73,14 @@ app.get(/.*\.js|css|png/, function(req, res){
 });
 
 app.get('/task/:name?', loadUser, function(req, res){
-	User.findOne({username: req.session.username}, function(error, data){
-		if (data){
-			var params = {
-				user: data._id
-			};
-			if (req.params.name)
-				params.name = req.params.name;
+	var params = {
+		user: req.user._id
+	};
+	if (req.params.name)
+		params.name = req.params.name;
 
-			Task.find(params, function(error, data){
-				res.json(data);
-			});
-		}
+	Task.find(params, function(error, data){
+		res.json(data);
 	});
 });
 
@@ -102,10 +101,10 @@ app.get('/fb/task/:id', function(req, res){
 
 			// this task is not available for public viewing 
 			} else {
-				res.send("401"); 
+				res.json("401"); 
 			}
 		} else {
-			res.send("404");
+			res.json("404");
 		}
 	});
 });
@@ -119,94 +118,120 @@ app.get('/fb/auth', function(req, res){
 	}, function(err, fbres){
 		graph.setAccessToken(fbres.access_token);
 		graph.get("me", function(err, meres){
-			User.findOne({username: req.session.username}, function(error, data){
-				data.fb.authenticated = true;
-				data.fb.access_token = fbres.access_token;
-				data.fb.username = meres.username;
-				data.fb.first_name = meres.first_name;
-				data.fb.last_name = meres.last_name;
-				data.save(function(error){
-					res.redirect("/");
-				});
+			var user = req.user;
+			user.fb.authenticated = true;
+			user.fb.access_token = fbres.access_token;
+			user.fb.username = meres.username;
+			user.fb.first_name = meres.first_name;
+			user.fb.last_name = meres.last_name;
+			user.save(function(error){
+				res.redirect("/");
 			});
 		});
 	});
 });
 
-app.post('/task/:name', loadUser, function(req, res){
-	User.findOne({username: req.params.name}, function(error, user){
-		Task.findOne({name: req.params.name}, function(error, task){
-			var config = req.param('config');
-			var allFalse = true;
-			for (var prop in config){
-				config[prop] = config[prop] === "true" ? true : false;
-				if (config[prop] === true)
-					allFalse = false;
-			}
+var verifyTask = function(req, res){
+	if (req.param("vouching_enabled") === "true" && req.param("voucher").length === 0){
+		res.json({
+			error: ["Must provide an e-mail address if vouching is enabled."]
+		});
+		return;
+	} else if (req.param("voucher") === req.user.email){
+		res.json({
+			error: ["Voucher's email address is the same as the user's."]
+		});
+		return;
+	}
 
-			if (allFalse){
-				res.json({
-					error: ["Must select at least one way to bother you."]
-				});
-			} else {
-				task.description = req.param('description');
-				task.interval = req.param('interval');
-				task.config = config;
-				task.save(function(error){
-					console.log(error);
-					res.json("OK");
-				});
-			}
+	var config = req.param('config');
+	var allFalse = true;
+	for (var prop in config){
+		config[prop] = config[prop] === "true" ? true : false;
+		if (config[prop] === true){
+			allFalse = false;
+		}
+	}
+
+	if (allFalse){
+		res.json({
+			error: ["Must select at least one way to bother you."]
+		});
+		return;
+	} else if (config.facebook === true){
+		if (req.user.fb.authenticated !== true){
+			res.json({
+				error: ["You have not yet been authenticated for facebook reminders."]
+			});
+		}
+	}
+};
+
+app.put('/task/:name', loadUser, function(req, res){
+
+	verifyTask(req, res);
+
+	Task.findOne({user: req.user._id, name: req.params.name}, function(error, task){
+		if (!task){
+			res.json({
+				error: ["No task with the provided name exists for the provided user"]
+			});
+			return;
+		}
+
+		task.description = req.param('description');
+		task.interval = req.param('interval');
+		task.config = req.param('config');
+		task.vouching_enabled = req.param("vouching_enabled") === "true";
+		task.voucher.email = req.param("voucher");
+		task.save(function(error){
+			res.json("OK");
 		});
 	});
 });
 
 app.post('/task', loadUser, function(req, res){	
-	User.findOne({username: req.session.username}, function(error, user){
-		
-		Task.findOne({user: user._id, name: req.param('name')}, function(error, task){
-			if (task){
-				res.json({
-					error: ["A task with that name already exists."]
-				});
-			} else {
-				var config = req.param('config');
-				var allFalse = true;
-				for (var prop in config){
-					config[prop] = config[prop] === "true" ? true : false;
-					if (config[prop] === true)
-						allFalse = false;
-				}
 
-				if (allFalse){
-					res.json({
-						error: ["Must select at least one way to bother you."]
-					});
-				} else {
-					new Task({
-						user: user._id,
-						name: req.param('name'),
-						description: req.param('description'),
-						start: new Date(req.param('start')),
-						interval: req.param('interval'),
-						config : config
-					}).save(function(error, task){
-						if (task){
-							res.json(task);
-							jobs[task._id] = Cron.scheduleCronJob(user, task);
-						}
-					});
-				}
+	verifyTask(req, res);
+
+	Task.findOne({user: req.user._id, name: req.param('name')}, function(error, task){
+		if (task){
+			res.json({
+				error: ["A task with that name already exists."]
+			});
+			return;
+		}
+
+		new Task({
+			user: req.user._id,
+			name: req.param('name'),
+			description: req.param('description'),
+			start: new Date(req.param('start')),
+			interval: req.param('interval'),
+			config : req.param('config'),
+			vouching_enabled : req.param('vouching_enabled') === "true",
+			voucher : {
+				email: req.param('voucher'),
+				verified: false 
 			}
-		})
+		}).save(function(error, task){
+			if (task){
+				res.json(task);
+				jobs[task._id] = Cron.scheduleCronJob(req.user, task);
+			}
+		});
 	});
 });
 
 app.delete('/task/:id', loadUser, function(req, res){
 	Task.findById(req.params.id, function(err, task){
 		if (task){
-			task.remove();
-			res.json("OK");
+			if (String(task.user) === String(req.user._id)){
+				task.remove();
+				res.json("OK");
+			} else {
+				res.json(401);
+			}
 		} else {
 			res.json(404);
 		}
@@ -226,17 +251,16 @@ app.post('/login', function(req, res){
 				error: "Incorrect username/password."
 			});
 		} else {
-			req.session.regenerate(function(err){
-			});
+			req.session.regenerate(function(err){});
 			req.session.username = username;
-			res.send("OK");
+			res.json("OK");
 		}
 	});
 });
 
 app.post("/logout", loadUser, function(req, res){
 	req.session.destroy();
-	res.send("OK");
+	res.json("OK");
 });		
 
 app.post('/user', function(req, res){
@@ -259,7 +283,7 @@ app.post('/user', function(req, res){
 					if (data.email)
 						Cron.verifyForEmailing(data.email);
 
-					res.send("OK");
+					res.json("OK");
 				} else {
 					var errors = [];
 					for (var e in error.errors){
@@ -275,13 +299,7 @@ app.post('/user', function(req, res){
 });
 
 app.delete('/user', loadUser, function(req, res){
-	User.findOne({
-		username: req.session.username
-	}, function(error, data){
-		if (data){
-			data.remove();
-		}
-	});
+	req.user.remove();
 });
 
 // finally, start up

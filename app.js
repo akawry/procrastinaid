@@ -24,6 +24,7 @@ $(function(){
 		addTaskToView : function(data){
 			$("#task-list").append(this.taskTemplate(data));
 			$("#" + data._id + " .edit-task").click(function(){
+				$("#task-error").html("");
 				$("#task-name").val(data.name);
 				$("#task-description").val(data.description);
 				$("#task-interval").val(data.interval);
@@ -42,6 +43,16 @@ $(function(){
 					$("#task-facebook").attr("checked", "checked")
 				else
 					$("#task-facebook").removeAttr("checked");	
+
+				if (data.vouching_enabled){
+					$("#voucher").show();
+					$("#task-enable-vouching").attr("checked", "checked");
+					$("#task-voucher").val(data.voucher.email);
+				} else {
+					$("#voucher").hide();
+					$("#task-enable-vouching").removeAttr("checked");
+					$("#task-voucher").val("");
+				}
 
 				$("#task-popup").modal('show')
 					.attr("edit", true)
@@ -128,7 +139,7 @@ $(function(){
 
 		$.ajax({
 			url: url,
-			type: 'POST',
+			type: edit ? 'PUT' : 'POST',
 			data : {
 				name: $("#task-name").val(),
 				description: $("#task-description").val(),
@@ -138,7 +149,9 @@ $(function(){
 					email: $("#task-email").is(":checked"),
 					phone: $("#task-phone").is(":checked"),
 					facebook: $("#task-facebook").is(":checked")
-				}
+				},
+				vouching_enabled: $("#task-enable-vouching").attr("checked") === "checked",
+				voucher: $("#task-voucher").val()
 			},
 			success : function(res){
 				if (res.error){
@@ -171,6 +184,9 @@ $(function(){
 		$("#task-facebook").removeAttr("checked");	
 		$("#fb-auth").hide();
 		$("#task-name").removeAttr("disabled").removeClass("disabled");
+		$("#task-enable-vouching").attr("checked", "checked");
+		$("#task-voucher").val("");
+		$("#vouching").show();
 	});
 
 	$("#task-facebook").click(function(){
@@ -178,6 +194,14 @@ $(function(){
 			$("#fb-auth").show();
 		} else {
 			$("#fb-auth").hide();
+		}
+	});
+
+	$("#task-enable-vouching").click(function(){
+		if ($(this).attr("checked")){
+			$("#vouching").show();
+		} else {
+			$("#vouching").hide();
 		}
 	});
 });
